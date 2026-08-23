@@ -1,0 +1,12 @@
+{
+  "name": "todo-project",
+  "version": "1.0.0",
+  "scripts": {
+    "backend": "node backend/server.js",
+    "frontend": "npm --prefix frontend/my-app run dev",
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
