@@ -51,8 +51,8 @@ const server = http.createServer((req, res) => {
 });
 
 
-server.listen(3070, () => {
-  console.log(
-    "Server running on http://localhost:3070"
-  );
-});
+const PORT = process.env.PORT || 3070;
+
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
+});;
