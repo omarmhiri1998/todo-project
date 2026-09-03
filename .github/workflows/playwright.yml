@@ -1,0 +1,51 @@
+name: Todo CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm install
+
+      - name: Run Jest tests
+        working-directory: backend
+        run: npx jest
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Install Playwright browser
+        working-directory: backend
+        run: npx playwright install --with-deps chromium
+
+      - name: Start backend
+        working-directory: backend
+        run: node server.js &
+
+      - name: Start frontend
+        working-directory: frontend
+        run: npm run dev -- --host 0.0.0.0 &
+
+      - name: Wait for application
+        run: |
+          npx -y wait-on http://localhost:3070
+          npx -y wait-on http://localhost:5173
+
+      - name: Run Playwright tests
+        working-directory: backend
+        run: npx playwright test
