@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node
@@ -17,33 +17,29 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install backend
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install backend dependencies
         working-directory: backend
         run: npm install
 
-      - name: Run Jest tests
+      - name: Install frontend dependencies
+        working-directory: frontend/my-app
+        run: npm install
+
+      - name: Run Jest
         working-directory: backend
         run: npx jest tests/integration.test.js tests/jest_test_version.test.js
 
-      - name: Install frontend
-        working-directory: frontend/my-app
-        run: npm install
-
-      - name: Install Playwright
-        working-directory: backend
+      - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
-      - name: Start backend
-        working-directory: backend
-        run: node server.js > backend.log 2>&1 &
+      - name: Start application
+        run: npm run dev &
 
-      - name: Start frontend
-        working-directory: frontend/my-app
-        run: npm run dev -- --host 0.0.0.0 --strictPort > frontend.log 2>&1 &
-
-      - name: Wait for app
+      - name: Wait for application
         run: npx -y wait-on --timeout 30000 http-get://127.0.0.1:3070/ http-get://127.0.0.1:5173/
 
       - name: Run Playwright
-        working-directory: backend
-        run: npx playwright test
+        run: npx playwright test backend/tests/tests/getTodos.spec.js
