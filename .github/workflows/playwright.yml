@@ -32,14 +32,22 @@ jobs:
         working-directory: backend
         run: npx jest tests/integration.test.js tests/jest_test_version.test.js
 
-      - name: Install Playwright browser
+      - name: Install Playwright
         run: npx playwright install --with-deps chromium
 
-      - name: Start application
-        run: npm run dev &
+      - name: Start backend
+        working-directory: backend
+        run: |
+          nohup node server.js > backend.log 2>&1 &
+
+      - name: Start frontend
+        working-directory: frontend/my-app
+        run: |
+          nohup npm run dev -- --host 0.0.0.0 --strictPort > frontend.log 2>&1 &
 
       - name: Wait for application
-        run: npx -y wait-on --timeout 30000 http-get://127.0.0.1:3070/ http-get://127.0.0.1:5173/
+        run: |
+          npx -y wait-on --timeout 30000 http-get://127.0.0.1:3070/ http-get://127.0.0.1:5173/
 
       - name: Run Playwright
         run: npx playwright test backend/tests/tests/getTodos.spec.js
