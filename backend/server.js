@@ -5,10 +5,11 @@ const { connectMongoDB } = require("./mongoDb");
 
 const server = http.createServer((req, res) => {
 
-  const allowedOrigins = [
-    "http://localhost:5173",
-    "https://to-do-list-opal-six-60.vercel.app"
-  ];
+ const allowedOrigins = [
+  "http://localhost:5173",
+  "https://to-do-list-opal-six-60.vercel.app",
+  "https://omar-todolist.vercel.app"
+];
 
   const origin = req.headers.origin;
 
