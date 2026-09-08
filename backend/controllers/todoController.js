@@ -1,8 +1,5 @@
-const todoModel =
-  require("../models/todoModel");
-
-const todoView =
-  require("../views/todoView");
+const todoModel = require("../models/todoModel");
+const todoView = require("../views/todoView");
 
 const allowedCategories = [
   "work",
@@ -13,30 +10,27 @@ const allowedCategories = [
 ];
 
 function readBody(req) {
-  return new Promise(
-    (resolve, reject) => {
-      let body = "";
+  return new Promise((resolve, reject) => {
+    let body = "";
 
-      req.on("data", (chunk) => {
-        body += chunk;
-      });
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
 
-      req.on("end", () => {
-        try {
-          const data =
-            body
-              ? JSON.parse(body)
-              : {};
+    req.on("end", () => {
+      try {
+        const data = body
+          ? JSON.parse(body)
+          : {};
 
-          resolve(data);
-        } catch (error) {
-          reject(error);
-        }
-      });
+        resolve(data);
+      } catch (error) {
+        reject(error);
+      }
+    });
 
-      req.on("error", reject);
-    }
-  );
+    req.on("error", reject);
+  });
 }
 
 function sendHtml(
@@ -44,13 +38,10 @@ function sendHtml(
   html,
   statusCode = 200
 ) {
-  res.writeHead(
-    statusCode,
-    {
-      "Content-Type":
-        "text/html; charset=utf-8",
-    }
-  );
+  res.writeHead(statusCode, {
+    "Content-Type":
+      "text/html; charset=utf-8",
+  });
 
   res.end(html);
 }
@@ -60,13 +51,10 @@ function sendError(
   message,
   statusCode = 400
 ) {
-  res.writeHead(
-    statusCode,
-    {
-      "Content-Type":
-        "text/plain; charset=utf-8",
-    }
-  );
+  res.writeHead(statusCode, {
+    "Content-Type":
+      "text/plain; charset=utf-8",
+  });
 
   res.end(message);
 }
@@ -90,12 +78,12 @@ function validateTodo(data) {
   return null;
 }
 
-function renderAllTodos(
+async function renderAllTodos(
   res,
   statusCode = 200
 ) {
   const todos =
-    todoModel.getAllTodos();
+    await todoModel.getAllTodos();
 
   const html =
     todoView.renderCards(todos);
@@ -107,12 +95,20 @@ function renderAllTodos(
   );
 }
 
-// GET /todos
-function getTodos(req, res) {
-  renderAllTodos(res);
+async function getTodos(req, res) {
+  try {
+    await renderAllTodos(res);
+  } catch (error) {
+    console.error(error);
+
+    sendError(
+      res,
+      "Database error",
+      500
+    );
+  }
 }
 
-// POST /todos
 async function createTodo(req, res) {
   try {
     const data =
@@ -129,24 +125,23 @@ async function createTodo(req, res) {
       );
     }
 
-    todoModel.createTodo({
+    await todoModel.createTodo({
       category: data.category,
-
       contain:
         data.contain.trim(),
-
       datum:
         data.datum || "",
-
       important:
         Boolean(data.important),
     });
 
-    renderAllTodos(
+    await renderAllTodos(
       res,
       201
     );
   } catch (error) {
+    console.error(error);
+
     sendError(
       res,
       "Invalid request",
@@ -155,7 +150,6 @@ async function createTodo(req, res) {
   }
 }
 
-// PUT /todos/:id
 async function updateTodo(
   req,
   res,
@@ -177,18 +171,15 @@ async function updateTodo(
     }
 
     const updatedTodo =
-      todoModel.updateTodo(
+      await todoModel.updateTodo(
         id,
         {
           category:
             data.category,
-
           contain:
             data.contain.trim(),
-
           datum:
             data.datum || "",
-
           important:
             Boolean(
               data.important
@@ -204,8 +195,10 @@ async function updateTodo(
       );
     }
 
-    renderAllTodos(res);
+    await renderAllTodos(res);
   } catch (error) {
+    console.error(error);
+
     sendError(
       res,
       "Invalid request",
@@ -214,24 +207,33 @@ async function updateTodo(
   }
 }
 
-// DELETE /todos/:id
-function deleteTodo(
+async function deleteTodo(
   req,
   res,
   id
 ) {
-  const deleted =
-    todoModel.deleteTodo(id);
+  try {
+    const deleted =
+      await todoModel.deleteTodo(id);
 
-  if (!deleted) {
-    return sendError(
+    if (!deleted) {
+      return sendError(
+        res,
+        "Todo not found",
+        404
+      );
+    }
+
+    await renderAllTodos(res);
+  } catch (error) {
+    console.error(error);
+
+    sendError(
       res,
-      "Todo not found",
-      404
+      "Database error",
+      500
     );
   }
-
-  renderAllTodos(res);
 }
 
 module.exports = {

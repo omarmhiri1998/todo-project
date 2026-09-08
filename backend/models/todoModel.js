@@ -1,88 +1,85 @@
-const fs = require("fs");
-const path = require("path");
-const { randomUUID } = require("crypto");
+const { ObjectId } = require("mongodb");
+const { getDb } = require("../mongoDb");
 
-const filePath = path.join(
-  __dirname,
-  "../data/todos.json"
-);
+async function getAllTodos() {
+  const db = getDb();
 
-function getAllTodos() {
-  const data = fs.readFileSync(
-    filePath,
-    "utf-8"
-  );
+  const todos = await db
+    .collection("todos")
+    .find()
+    .toArray();
 
-  if (!data.trim()) {
-    return [];
-  }
-
-  return JSON.parse(data);
+  return todos.map((todo) => ({
+    id: todo._id.toString(),
+    category: todo.category,
+    contain: todo.contain,
+    datum: todo.datum || "",
+    important: todo.important,
+  }));
 }
 
-function saveTodos(todos) {
-  fs.writeFileSync(
-    filePath,
-    JSON.stringify(todos, null, 2)
-  );
-}
-
-function createTodo(data) {
-  const todos = getAllTodos();
+async function createTodo(data) {
+  const db = getDb();
 
   const newTodo = {
-    id: randomUUID(),
-
     category: data.category,
     contain: data.contain,
-    datum: data.datum,
+    datum: data.datum || "",
     important: data.important,
   };
 
-  todos.push(newTodo);
+  const result = await db
+    .collection("todos")
+    .insertOne(newTodo);
 
-  saveTodos(todos);
-
-  return newTodo;
+  return {
+    id: result.insertedId.toString(),
+    ...newTodo,
+  };
 }
 
-function updateTodo(id, newData) {
-  const todos = getAllTodos();
+async function updateTodo(id, newData) {
+  const db = getDb();
 
-  const todo = todos.find(
-    (todo) => todo.id === id
-  );
+  const result = await db
+    .collection("todos")
+    .updateOne(
+      {
+        _id: new ObjectId(id),
+      },
+      {
+        $set: {
+          category: newData.category,
+          contain: newData.contain,
+          datum: newData.datum || "",
+          important: newData.important,
+        },
+      }
+    );
 
-  if (!todo) {
+  if (result.matchedCount === 0) {
     return null;
   }
 
-  todo.category = newData.category;
-  todo.contain = newData.contain;
-  todo.datum = newData.datum;
-  todo.important = newData.important;
-
-  saveTodos(todos);
-
-  return todo;
+  return {
+    id,
+    category: newData.category,
+    contain: newData.contain,
+    datum: newData.datum || "",
+    important: newData.important,
+  };
 }
 
-function deleteTodo(id) {
-  const todos = getAllTodos();
+async function deleteTodo(id) {
+  const db = getDb();
 
-  const filteredTodos = todos.filter(
-    (todo) => todo.id !== id
-  );
+  const result = await db
+    .collection("todos")
+    .deleteOne({
+      _id: new ObjectId(id),
+    });
 
-  if (
-    filteredTodos.length === todos.length
-  ) {
-    return false;
-  }
-
-  saveTodos(filteredTodos);
-
-  return true;
+  return result.deletedCount > 0;
 }
 
 module.exports = {

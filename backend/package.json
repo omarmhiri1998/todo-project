@@ -4,6 +4,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "mongodb": "^7.6.0",
+    "pg": "^8.23.0"
   }
-  
 }
