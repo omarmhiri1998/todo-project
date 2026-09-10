@@ -1,12 +1,15 @@
+
 const { ObjectId } = require("mongodb");
 const { getDb } = require("../mongoDb");
 
-async function getAllTodos() {
+async function getAllTodos(userId) {
   const db = getDb();
 
   const todos = await db
     .collection("todos")
-    .find()
+    .find({
+      userId: userId
+    })
     .toArray();
 
   return todos.map((todo) => ({
@@ -18,7 +21,10 @@ async function getAllTodos() {
   }));
 }
 
-async function createTodo(data) {
+async function createTodo(
+  data,
+  userId
+) {
   const db = getDb();
 
   const newTodo = {
@@ -26,6 +32,8 @@ async function createTodo(data) {
     contain: data.contain,
     datum: data.datum || "",
     important: data.important,
+
+    userId: userId
   };
 
   const result = await db
@@ -38,21 +46,38 @@ async function createTodo(data) {
   };
 }
 
-async function updateTodo(id, newData) {
+async function updateTodo(
+  id,
+  userId,
+  newData
+) {
   const db = getDb();
+
+  if (!ObjectId.isValid(id)) {
+    return null;
+  }
 
   const result = await db
     .collection("todos")
     .updateOne(
       {
         _id: new ObjectId(id),
+
+        userId: userId
       },
       {
         $set: {
-          category: newData.category,
-          contain: newData.contain,
-          datum: newData.datum || "",
-          important: newData.important,
+          category:
+            newData.category,
+
+          contain:
+            newData.contain,
+
+          datum:
+            newData.datum || "",
+
+          important:
+            newData.important,
         },
       }
     );
@@ -70,13 +95,22 @@ async function updateTodo(id, newData) {
   };
 }
 
-async function deleteTodo(id) {
+async function deleteTodo(
+  id,
+  userId
+) {
   const db = getDb();
+
+  if (!ObjectId.isValid(id)) {
+    return false;
+  }
 
   const result = await db
     .collection("todos")
     .deleteOne({
       _id: new ObjectId(id),
+
+      userId: userId
     });
 
   return result.deletedCount > 0;
@@ -88,3 +122,4 @@ module.exports = {
   updateTodo,
   deleteTodo,
 };
+

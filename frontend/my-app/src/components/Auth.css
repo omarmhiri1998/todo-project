@@ -1,0 +1,197 @@
+.auth-page {
+  width: 100%;
+  min-height: 100vh;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 30px 20px;
+
+  background: #f3f6fb;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 430px;
+
+  padding: 35px;
+
+  background: white;
+
+  border-radius: 20px;
+
+  box-shadow:
+    0 10px 35px rgba(0, 0, 0, 0.08);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.auth-logo {
+  width: 100%;
+  height: 110px;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  margin-bottom: 10px;
+}
+
+.auth-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.auth-card h1 {
+  font-size: 28px;
+  color: #222;
+
+  margin-bottom: 8px;
+}
+
+.auth-subtitle {
+  color: #777;
+  font-size: 14px;
+
+  margin-bottom: 25px;
+}
+
+.auth-form {
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+
+  padding: 0;
+
+  background: transparent;
+}
+
+.auth-form label {
+  font-size: 14px;
+  font-weight: 600;
+
+  color: #333;
+
+  margin-top: 5px;
+}
+
+.auth-input {
+  width: 100%;
+  height: 45px;
+
+  padding: 0 14px;
+
+  border: 1px solid #d6dce8;
+  border-radius: 10px;
+
+  background: white;
+
+  font-size: 15px;
+
+  outline: none;
+
+  transition: 0.2s;
+}
+
+.auth-input:focus {
+  border-color: #4f7cff;
+
+  box-shadow:
+    0 0 0 3px rgba(79, 124, 255, 0.12);
+}
+
+.auth-button {
+  width: 100%;
+  height: 48px;
+
+  margin-top: 12px;
+
+  border: none;
+  border-radius: 10px;
+
+  background: #4f7cff;
+
+  color: white;
+
+  font-size: 16px;
+  font-weight: bold;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.auth-button:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 6px 15px rgba(79, 124, 255, 0.3);
+}
+
+.auth-switch {
+  margin-top: 22px;
+
+  font-size: 14px;
+
+  color: #777;
+}
+
+.auth-switch button {
+  margin-left: 6px;
+
+  border: none;
+  background: transparent;
+
+  color: #4f7cff;
+
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.auth-switch button:hover {
+  text-decoration: underline;
+}
+.auth-error {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  background: #ffe6e6;
+  color: #c62828;
+  font-size: 14px;
+}
+
+@media (max-width: 500px) {
+
+  .auth-page {
+    padding: 0;
+
+    align-items: stretch;
+  }
+
+  .auth-card {
+    max-width: none;
+    min-height: 100vh;
+
+    border-radius: 0;
+
+    justify-content: center;
+
+    padding: 25px;
+  }
+
+  .auth-logo {
+    height: 100px;
+  }
+
+  .auth-card h1 {
+    font-size: 25px;
+  }
+}

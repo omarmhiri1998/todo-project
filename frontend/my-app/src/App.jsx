@@ -1,12 +1,26 @@
+
 import { useState } from "react";
 
 import TodoForm from "./components/TodoForm";
 import TodoCards from "./components/TodoCards";
+import Login from "./components/Login";
+import Signup from "./components/Signup";
+
 import useTodos from "./hooks/useTodos";
 
 import "./App.css";
 
 function App() {
+  const [authPage, setAuthPage] =
+    useState("login");
+
+  const [isLoggedIn, setIsLoggedIn] =
+    useState(() => {
+      return Boolean(
+        localStorage.getItem("token")
+      );
+    });
+
   const {
     cardsHtml,
     loading,
@@ -14,26 +28,57 @@ function App() {
     addTodo,
     deleteTodo,
     updateTodo,
-  } = useTodos();
+  } = useTodos(
+  isLoggedIn,
+  () => {
+    setIsLoggedIn(false);
+    setAuthPage("login");
+  }
+);
 
-
-  // false = Todo List
-  // true = Add Todo Form
   const [showMobileForm, setShowMobileForm] =
     useState(false);
-
 
   async function handleAddTodo(todo) {
     const success = await addTodo(todo);
 
     if (success) {
- 
       setShowMobileForm(false);
     }
 
     return success;
   }
 
+  function handleLogout() {
+    localStorage.removeItem("token");
+
+    setIsLoggedIn(false);
+    setAuthPage("login");
+    setShowMobileForm(false);
+  }
+
+  if (!isLoggedIn) {
+    if (authPage === "signup") {
+      return (
+        <Signup
+          onSwitch={() =>
+            setAuthPage("login")
+          }
+        />
+      );
+    }
+
+    return (
+      <Login
+        onSwitch={() =>
+          setAuthPage("signup")
+        }
+        onLogin={() =>
+          setIsLoggedIn(true)
+        }
+      />
+    );
+  }
 
   return (
     <div
@@ -43,8 +88,15 @@ function App() {
           : "container"
       }
     >
-
-      {/* LOGO */}
+      <div className="todo-top-bar">
+        <button
+          type="button"
+          className="logout-button"
+          onClick={handleLogout}
+        >
+          Logout
+        </button>
+      </div>
 
       <div className="logo">
         <img
@@ -53,9 +105,6 @@ function App() {
         />
       </div>
 
-
-      {/* ADD TODO FORM */}
-
       <div
         className={
           showMobileForm
@@ -63,9 +112,6 @@ function App() {
             : "todo-form-wrapper"
         }
       >
-
-        {/* BACK BUTTON - MOBILE ONLY */}
-
         <button
           type="button"
           className="mobile-back-button"
@@ -76,15 +122,10 @@ function App() {
           ← Back
         </button>
 
-
         <TodoForm
           onAdd={handleAddTodo}
         />
-
       </div>
-
-
-      {/* ERROR */}
 
       {error && (
         <p className="error">
@@ -92,11 +133,7 @@ function App() {
         </p>
       )}
 
-
-      {/* TODO LIST */}
-
       <div className="todo-list-wrapper">
-
         {loading ? (
           <p className="loading">
             Loading...
@@ -108,11 +145,7 @@ function App() {
             onUpdate={updateTodo}
           />
         )}
-
       </div>
-
-
-      {/* FLOATING ADD BUTTON - MOBILE ONLY */}
 
       {!showMobileForm && (
         <button
@@ -126,9 +159,9 @@ function App() {
           +
         </button>
       )}
-
     </div>
   );
 }
 
 export default App;
+

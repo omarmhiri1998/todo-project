@@ -1,5 +1,9 @@
-const todoModel = require("../models/todoModel");
-const todoView = require("../views/todoView");
+
+const todoModel =
+  require("../models/todoModel");
+
+const todoView =
+  require("../views/todoView");
 
 const allowedCategories = [
   "work",
@@ -10,27 +14,35 @@ const allowedCategories = [
 ];
 
 function readBody(req) {
-  return new Promise((resolve, reject) => {
-    let body = "";
+  return new Promise(
+    (resolve, reject) => {
+      let body = "";
 
-    req.on("data", (chunk) => {
-      body += chunk;
-    });
+      req.on(
+        "data",
+        (chunk) => {
+          body += chunk;
+        }
+      );
 
-    req.on("end", () => {
-      try {
-        const data = body
-          ? JSON.parse(body)
-          : {};
+      req.on("end", () => {
+        try {
+          const data = body
+            ? JSON.parse(body)
+            : {};
 
-        resolve(data);
-      } catch (error) {
-        reject(error);
-      }
-    });
+          resolve(data);
+        } catch (error) {
+          reject(error);
+        }
+      });
 
-    req.on("error", reject);
-  });
+      req.on(
+        "error",
+        reject
+      );
+    }
+  );
 }
 
 function sendHtml(
@@ -38,10 +50,13 @@ function sendHtml(
   html,
   statusCode = 200
 ) {
-  res.writeHead(statusCode, {
-    "Content-Type":
-      "text/html; charset=utf-8",
-  });
+  res.writeHead(
+    statusCode,
+    {
+      "Content-Type":
+        "text/html; charset=utf-8",
+    }
+  );
 
   res.end(html);
 }
@@ -51,10 +66,13 @@ function sendError(
   message,
   statusCode = 400
 ) {
-  res.writeHead(statusCode, {
-    "Content-Type":
-      "text/plain; charset=utf-8",
-  });
+  res.writeHead(
+    statusCode,
+    {
+      "Content-Type":
+        "text/plain; charset=utf-8",
+    }
+  );
 
   res.end(message);
 }
@@ -80,13 +98,18 @@ function validateTodo(data) {
 
 async function renderAllTodos(
   res,
+  userId,
   statusCode = 200
 ) {
   const todos =
-    await todoModel.getAllTodos();
+    await todoModel.getAllTodos(
+      userId
+    );
 
   const html =
-    todoView.renderCards(todos);
+    todoView.renderCards(
+      todos
+    );
 
   sendHtml(
     res,
@@ -95,9 +118,19 @@ async function renderAllTodos(
   );
 }
 
-async function getTodos(req, res) {
+async function getTodos(
+  req,
+  res
+) {
   try {
-    await renderAllTodos(res);
+    const userId =
+      req.user.userId;
+
+    await renderAllTodos(
+      res,
+      userId
+    );
+
   } catch (error) {
     console.error(error);
 
@@ -109,8 +142,14 @@ async function getTodos(req, res) {
   }
 }
 
-async function createTodo(req, res) {
+async function createTodo(
+  req,
+  res
+) {
   try {
+    const userId =
+      req.user.userId;
+
     const data =
       await readBody(req);
 
@@ -125,20 +164,31 @@ async function createTodo(req, res) {
       );
     }
 
-    await todoModel.createTodo({
-      category: data.category,
-      contain:
-        data.contain.trim(),
-      datum:
-        data.datum || "",
-      important:
-        Boolean(data.important),
-    });
+    await todoModel.createTodo(
+      {
+        category:
+          data.category,
+
+        contain:
+          data.contain.trim(),
+
+        datum:
+          data.datum || "",
+
+        important:
+          Boolean(
+            data.important
+          ),
+      },
+      userId
+    );
 
     await renderAllTodos(
       res,
+      userId,
       201
     );
+
   } catch (error) {
     console.error(error);
 
@@ -156,6 +206,9 @@ async function updateTodo(
   id
 ) {
   try {
+    const userId =
+      req.user.userId;
+
     const data =
       await readBody(req);
 
@@ -173,13 +226,17 @@ async function updateTodo(
     const updatedTodo =
       await todoModel.updateTodo(
         id,
+        userId,
         {
           category:
             data.category,
+
           contain:
             data.contain.trim(),
+
           datum:
             data.datum || "",
+
           important:
             Boolean(
               data.important
@@ -195,7 +252,11 @@ async function updateTodo(
       );
     }
 
-    await renderAllTodos(res);
+    await renderAllTodos(
+      res,
+      userId
+    );
+
   } catch (error) {
     console.error(error);
 
@@ -213,8 +274,14 @@ async function deleteTodo(
   id
 ) {
   try {
+    const userId =
+      req.user.userId;
+
     const deleted =
-      await todoModel.deleteTodo(id);
+      await todoModel.deleteTodo(
+        id,
+        userId
+      );
 
     if (!deleted) {
       return sendError(
@@ -224,7 +291,11 @@ async function deleteTodo(
       );
     }
 
-    await renderAllTodos(res);
+    await renderAllTodos(
+      res,
+      userId
+    );
+
   } catch (error) {
     console.error(error);
 
@@ -242,3 +313,4 @@ module.exports = {
   updateTodo,
   deleteTodo,
 };
+

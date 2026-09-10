@@ -1,63 +1,100 @@
+
 const http = require("http");
 
-const todoRoutes = require("./routes/todoRoutes");
-const { connectMongoDB } = require("./mongoDb");
+const todoRoutes =
+  require("./routes/todoRoutes");
 
-const server = http.createServer((req, res) => {
+const authRoutes =
+  require("./routes/authRoutes");
 
- const allowedOrigins = [
-  "http://localhost:5173",
-  "https://to-do-list-opal-six-60.vercel.app",
-  "https://omar-todolist.vercel.app"
-];
+const authenticate =
+  require("./middleware/authMiddleware");
 
-  const origin = req.headers.origin;
+const { connectMongoDB } =
+  require("./mongoDb");
 
-  if (allowedOrigins.includes(origin)) {
+const server = http.createServer(
+  async (req, res) => {
+
+    const allowedOrigins = [
+      "http://localhost:5173",
+      "https://to-do-list-opal-six-60.vercel.app",
+      "https://omar-todolist.vercel.app"
+    ];
+
+    const origin =
+      req.headers.origin;
+
+    if (
+      allowedOrigins.includes(origin)
+    ) {
+      res.setHeader(
+        "Access-Control-Allow-Origin",
+        origin
+      );
+    }
+
     res.setHeader(
-      "Access-Control-Allow-Origin",
-      origin
+      "Access-Control-Allow-Methods",
+      "GET, POST, PUT, DELETE, OPTIONS"
     );
+
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization"
+    );
+
+    if (req.method === "OPTIONS") {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    if (
+      req.method === "GET" &&
+      req.url === "/"
+    ) {
+      res.writeHead(200, {
+        "Content-Type": "text/plain"
+      });
+
+      res.end(
+        "Todo Backend is running"
+      );
+
+      return;
+    }
+
+    const authHandled =
+      await authRoutes(req, res);
+
+    if (authHandled) {
+      return;
+    }
+
+    if (
+      req.url.startsWith("/todos")
+    ) {
+      const authenticated =
+        authenticate(req, res);
+
+      if (!authenticated) {
+        return;
+      }
+    }
+
+    const handled =
+      todoRoutes(req, res);
+
+    if (!handled) {
+      res.writeHead(404, {
+        "Content-Type": "text/plain"
+      });
+
+      res.end("Route not found");
+    }
   }
-
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, OPTIONS"
-  );
-
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type"
-  );
-
-  if (req.method === "OPTIONS") {
-    res.writeHead(204);
-    res.end();
-    return;
-  }
-
-  if (
-    req.method === "GET" &&
-    req.url === "/"
-  ) {
-    res.writeHead(200, {
-      "Content-Type": "text/plain"
-    });
-
-    res.end("Todo Backend is running");
-    return;
-  }
-
-  const handled = todoRoutes(req, res);
-
-  if (!handled) {
-    res.writeHead(404, {
-      "Content-Type": "text/plain"
-    });
-
-    res.end("Route not found");
-  }
-});
+);
 
 const PORT =
   process.env.PORT || 3070;

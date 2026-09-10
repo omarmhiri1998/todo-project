@@ -1,3 +1,4 @@
+
 import {
   useEffect,
   useState
@@ -7,7 +8,10 @@ const API =
   import.meta.env.VITE_API_URL ||
   "http://localhost:3070";
 
-function useTodos() {
+function useTodos(
+  isLoggedIn,
+  onUnauthorized
+) {
   const [
     cardsHtml,
     setCardsHtml
@@ -16,12 +20,22 @@ function useTodos() {
   const [
     loading,
     setLoading
-  ] = useState(true);
+  ] = useState(false);
 
   const [
     error,
     setError
   ] = useState("");
+
+  function getAuthHeaders() {
+    const token =
+      localStorage.getItem("token");
+
+    return {
+      Authorization:
+        `Bearer ${token}`
+    };
+  }
 
   async function requestHtml(
     url,
@@ -33,8 +47,25 @@ function useTodos() {
       const response =
         await fetch(
           url,
-          options
+          {
+            ...options,
+
+            headers: {
+              ...options.headers,
+              ...getAuthHeaders()
+            }
+          }
         );
+
+      if (response.status === 401) {
+        localStorage.removeItem(
+          "token"
+        );
+
+        onUnauthorized();
+
+        return false;
+      }
 
       if (!response.ok) {
         const message =
@@ -51,6 +82,7 @@ function useTodos() {
       setCardsHtml(html);
 
       return true;
+
     } catch (error) {
       setError(
         error.message
@@ -78,11 +110,11 @@ function useTodos() {
 
         headers: {
           "Content-Type":
-            "application/json",
+            "application/json"
         },
 
         body:
-          JSON.stringify(todo),
+          JSON.stringify(todo)
       }
     );
   }
@@ -91,7 +123,7 @@ function useTodos() {
     return requestHtml(
       `${API}/todos/${id}`,
       {
-        method: "DELETE",
+        method: "DELETE"
       }
     );
   }
@@ -107,18 +139,20 @@ function useTodos() {
 
         headers: {
           "Content-Type":
-            "application/json",
+            "application/json"
         },
 
         body:
-          JSON.stringify(todo),
+          JSON.stringify(todo)
       }
     );
   }
 
   useEffect(() => {
-    loadTodos();
-  }, []);
+    if (isLoggedIn) {
+      loadTodos();
+    }
+  }, [isLoggedIn]);
 
   return {
     cardsHtml,
@@ -128,8 +162,9 @@ function useTodos() {
     addTodo,
     deleteTodo,
     updateTodo,
-    loadTodos,
+    loadTodos
   };
 }
 
 export default useTodos;
+
