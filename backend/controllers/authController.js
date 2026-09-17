@@ -15,7 +15,9 @@ function readBody(req) {
 
       req.on("end", () => {
         try {
-          resolve(JSON.parse(body));
+          resolve(
+            JSON.parse(body)
+          );
         } catch {
           reject(
             new Error("Invalid JSON")
@@ -26,7 +28,64 @@ function readBody(req) {
   );
 }
 
-async function register(req, res) {
+function getCookieOptions(
+  maxAge
+) {
+  const isProduction =
+    process.env.NODE_ENV ===
+    "production";
+
+  if (isProduction) {
+    return (
+      `HttpOnly; Secure; ` +
+      `SameSite=None; Path=/; ` +
+      `Max-Age=${maxAge}`
+    );
+  }
+
+  return (
+    `HttpOnly; SameSite=Lax; ` +
+    `Path=/; Max-Age=${maxAge}`
+  );
+}
+
+function getCookie(
+  req,
+  name
+) {
+  const cookieHeader =
+    req.headers.cookie;
+
+  if (!cookieHeader) {
+    return null;
+  }
+
+  const cookies =
+    cookieHeader.split(";");
+
+  for (const cookie of cookies) {
+    const [
+      cookieName,
+      ...cookieValue
+    ] =
+      cookie
+        .trim()
+        .split("=");
+
+    if (cookieName === name) {
+      return decodeURIComponent(
+        cookieValue.join("=")
+      );
+    }
+  }
+
+  return null;
+}
+
+async function register(
+  req,
+  res
+) {
   try {
     const data =
       await readBody(req);
@@ -73,7 +132,9 @@ async function register(req, res) {
       JSON.stringify({
         message:
           "User created successfully",
-        userId: newUser._id
+
+        userId:
+          newUser._id.toString()
       })
     );
 
@@ -92,7 +153,10 @@ async function register(req, res) {
   }
 }
 
-async function login(req, res) {
+async function login(
+  req,
+  res
+) {
   try {
     const data =
       await readBody(req);
@@ -140,28 +204,58 @@ async function login(req, res) {
       return;
     }
 
-    const token =
+    const accessToken =
       jwt.sign(
         {
-          userId: user._id,
-          email: user.email
+          userId:
+            user._id.toString(),
+
+          email:
+            user.email
         },
-        process.env.JWT_SECRET,
+        process.env
+          .ACCESS_TOKEN_SECRET,
         {
-          expiresIn: "1h"
+          expiresIn: "15m"
+        }
+      );
+
+    const refreshToken =
+      jwt.sign(
+        {
+          userId:
+            user._id.toString(),
+
+          email:
+            user.email
+        },
+        process.env
+          .REFRESH_TOKEN_SECRET,
+        {
+          expiresIn: "7d"
         }
       );
 
     res.writeHead(200, {
       "Content-Type":
-        "application/json"
+        "application/json",
+
+      "Set-Cookie": [
+        `accessToken=${accessToken}; ` +
+          getCookieOptions(900),
+
+        `refreshToken=${refreshToken}; ` +
+          getCookieOptions(604800),
+
+        `token=; ` +
+          getCookieOptions(0)
+      ]
     });
 
     res.end(
       JSON.stringify({
         message:
-          "Login successful",
-        token
+          "Login successful"
       })
     );
 
@@ -180,7 +274,151 @@ async function login(req, res) {
   }
 }
 
+function refresh(
+  req,
+  res
+) {
+  const refreshToken =
+    getCookie(
+      req,
+      "refreshToken"
+    );
+
+  if (!refreshToken) {
+    res.writeHead(401, {
+      "Content-Type":
+        "application/json"
+    });
+
+    res.end(
+      JSON.stringify({
+        message:
+          "Refresh token required"
+      })
+    );
+
+    return;
+  }
+
+  try {
+    const decoded =
+      jwt.verify(
+        refreshToken,
+        process.env
+          .REFRESH_TOKEN_SECRET
+      );
+
+    const newAccessToken =
+      jwt.sign(
+        {
+          userId:
+            decoded.userId,
+
+          email:
+            decoded.email
+        },
+        process.env
+          .ACCESS_TOKEN_SECRET,
+        {
+          expiresIn: "15m"
+        }
+      );
+
+    res.writeHead(200, {
+      "Content-Type":
+        "application/json",
+
+      "Set-Cookie":
+        `accessToken=${newAccessToken}; ` +
+        getCookieOptions(900)
+    });
+
+    res.end(
+      JSON.stringify({
+        message:
+          "Access token refreshed"
+      })
+    );
+
+  } catch {
+    res.writeHead(401, {
+      "Content-Type":
+        "application/json",
+
+      "Set-Cookie": [
+        `accessToken=; ` +
+          getCookieOptions(0),
+
+        `refreshToken=; ` +
+          getCookieOptions(0)
+      ]
+    });
+
+    res.end(
+      JSON.stringify({
+        message:
+          "Invalid or expired refresh token"
+      })
+    );
+  }
+}
+
+function logout(
+  req,
+  res
+) {
+  res.writeHead(200, {
+    "Content-Type":
+      "application/json",
+
+    "Set-Cookie": [
+      `accessToken=; ` +
+        getCookieOptions(0),
+
+      `refreshToken=; ` +
+        getCookieOptions(0),
+
+      `token=; ` +
+        getCookieOptions(0)
+    ]
+  });
+
+  res.end(
+    JSON.stringify({
+      message:
+        "Logout successful"
+    })
+  );
+}
+
+function session(
+  req,
+  res
+) {
+  res.writeHead(200, {
+    "Content-Type":
+      "application/json"
+  });
+
+  res.end(
+    JSON.stringify({
+      authenticated: true,
+
+      user: {
+        userId:
+          req.user.userId,
+
+        email:
+          req.user.email
+      }
+    })
+  );
+}
+
 module.exports = {
   register,
-  login
+  login,
+  refresh,
+  logout,
+  session
 };

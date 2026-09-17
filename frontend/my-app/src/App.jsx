@@ -1,25 +1,49 @@
+import {
+  useEffect,
+  useState
+} from "react";
 
-import { useState } from "react";
+import TodoForm
+  from "./components/TodoForm";
 
-import TodoForm from "./components/TodoForm";
-import TodoCards from "./components/TodoCards";
-import Login from "./components/Login";
-import Signup from "./components/Signup";
+import TodoCards
+  from "./components/TodoCards";
 
-import useTodos from "./hooks/useTodos";
+import Login
+  from "./components/Login";
+
+import Signup
+  from "./components/Signup";
+
+import useTodos
+  from "./hooks/useTodos";
 
 import "./App.css";
 
-function App() {
-  const [authPage, setAuthPage] =
-    useState("login");
+const API =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:3070";
 
-  const [isLoggedIn, setIsLoggedIn] =
-    useState(() => {
-      return Boolean(
-        localStorage.getItem("token")
-      );
-    });
+function App() {
+  const [
+    authPage,
+    setAuthPage
+  ] = useState("login");
+
+  const [
+    isLoggedIn,
+    setIsLoggedIn
+  ] = useState(false);
+
+  const [
+    checkingSession,
+    setCheckingSession
+  ] = useState(true);
+
+  const [
+    showMobileForm,
+    setShowMobileForm
+  ] = useState(false);
 
   const {
     cardsHtml,
@@ -29,40 +53,157 @@ function App() {
     deleteTodo,
     updateTodo,
   } = useTodos(
-  isLoggedIn,
-  () => {
-    setIsLoggedIn(false);
-    setAuthPage("login");
-  }
-);
+    isLoggedIn,
 
-  const [showMobileForm, setShowMobileForm] =
-    useState(false);
+    () => {
+      setIsLoggedIn(false);
+      setAuthPage("login");
+    }
+  );
 
-  async function handleAddTodo(todo) {
-    const success = await addTodo(todo);
+  useEffect(() => {
+
+    localStorage.removeItem(
+      "token"
+    );
+
+    async function refreshAccessToken() {
+      try {
+        const response =
+          await fetch(
+            `${API}/refresh`,
+            {
+              method: "POST",
+
+              credentials:
+                "include"
+            }
+          );
+
+        return response.ok;
+
+      } catch {
+        return false;
+      }
+    }
+
+    async function checkSession() {
+      try {
+        let response =
+          await fetch(
+            `${API}/session`,
+            {
+              credentials:
+                "include"
+            }
+          );
+
+        if (
+          response.status === 401
+        ) {
+          const refreshed =
+            await refreshAccessToken();
+
+          if (refreshed) {
+            response =
+              await fetch(
+                `${API}/session`,
+                {
+                  credentials:
+                    "include"
+                }
+              );
+          }
+        }
+
+        setIsLoggedIn(
+          response.ok
+        );
+
+      } catch {
+        setIsLoggedIn(
+          false
+        );
+
+      } finally {
+        setCheckingSession(
+          false
+        );
+      }
+    }
+
+    checkSession();
+
+  }, []);
+
+  async function handleAddTodo(
+    todo
+  ) {
+    const success =
+      await addTodo(todo);
 
     if (success) {
-      setShowMobileForm(false);
+      setShowMobileForm(
+        false
+      );
     }
 
     return success;
   }
 
-  function handleLogout() {
-    localStorage.removeItem("token");
+  async function handleLogout() {
+    try {
+      const response =
+        await fetch(
+          `${API}/logout`,
+          {
+            method: "POST",
 
-    setIsLoggedIn(false);
-    setAuthPage("login");
-    setShowMobileForm(false);
+            credentials:
+              "include"
+          }
+        );
+
+      if (!response.ok) {
+        return;
+      }
+
+      setIsLoggedIn(false);
+
+      setAuthPage(
+        "login"
+      );
+
+      setShowMobileForm(
+        false
+      );
+
+    } catch (error) {
+      console.error(
+        "Logout failed:",
+        error
+      );
+    }
+  }
+
+  if (checkingSession) {
+    return (
+      <p className="loading">
+        Loading...
+      </p>
+    );
   }
 
   if (!isLoggedIn) {
-    if (authPage === "signup") {
+    if (
+      authPage === "signup"
+    ) {
       return (
         <Signup
           onSwitch={() =>
-            setAuthPage("login")
+            setAuthPage(
+              "login"
+            )
           }
         />
       );
@@ -71,10 +212,15 @@ function App() {
     return (
       <Login
         onSwitch={() =>
-          setAuthPage("signup")
+          setAuthPage(
+            "signup"
+          )
         }
+
         onLogin={() =>
-          setIsLoggedIn(true)
+          setIsLoggedIn(
+            true
+          )
         }
       />
     );
@@ -88,11 +234,14 @@ function App() {
           : "container"
       }
     >
+
       <div className="todo-top-bar">
         <button
           type="button"
           className="logout-button"
-          onClick={handleLogout}
+          onClick={
+            handleLogout
+          }
         >
           Logout
         </button>
@@ -116,14 +265,18 @@ function App() {
           type="button"
           className="mobile-back-button"
           onClick={() =>
-            setShowMobileForm(false)
+            setShowMobileForm(
+              false
+            )
           }
         >
           ← Back
         </button>
 
         <TodoForm
-          onAdd={handleAddTodo}
+          onAdd={
+            handleAddTodo
+          }
         />
       </div>
 
@@ -134,6 +287,7 @@ function App() {
       )}
 
       <div className="todo-list-wrapper">
+
         {loading ? (
           <p className="loading">
             Loading...
@@ -141,10 +295,15 @@ function App() {
         ) : (
           <TodoCards
             html={cardsHtml}
-            onDelete={deleteTodo}
-            onUpdate={updateTodo}
+            onDelete={
+              deleteTodo
+            }
+            onUpdate={
+              updateTodo
+            }
           />
         )}
+
       </div>
 
       {!showMobileForm && (
@@ -152,16 +311,18 @@ function App() {
           type="button"
           className="mobile-add-button"
           onClick={() =>
-            setShowMobileForm(true)
+            setShowMobileForm(
+              true
+            )
           }
           aria-label="Add Todo"
         >
           +
         </button>
       )}
+
     </div>
   );
 }
 
 export default App;
-

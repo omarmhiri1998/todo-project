@@ -1,4 +1,3 @@
-
 import {
   useEffect,
   useState
@@ -27,19 +26,30 @@ function useTodos(
     setError
   ] = useState("");
 
-  function getAuthHeaders() {
-    const token =
-      localStorage.getItem("token");
+  async function refreshAccessToken() {
+    try {
+      const response =
+        await fetch(
+          `${API}/refresh`,
+          {
+            method: "POST",
 
-    return {
-      Authorization:
-        `Bearer ${token}`
-    };
+            credentials:
+              "include"
+          }
+        );
+
+      return response.ok;
+
+    } catch {
+      return false;
+    }
   }
 
   async function requestHtml(
     url,
-    options = {}
+    options = {},
+    canRetry = true
   ) {
     try {
       setError("");
@@ -50,17 +60,35 @@ function useTodos(
           {
             ...options,
 
+            credentials:
+              "include",
+
             headers: {
-              ...options.headers,
-              ...getAuthHeaders()
+              ...options.headers
             }
           }
         );
 
-      if (response.status === 401) {
-        localStorage.removeItem(
-          "token"
-        );
+      if (
+        response.status === 401 &&
+        canRetry
+      ) {
+        const refreshed =
+          await refreshAccessToken();
+
+        if (refreshed) {
+          return requestHtml(
+            url,
+            options,
+            false
+          );
+        }
+      }
+
+      if (
+        response.status === 401
+      ) {
+        setCardsHtml("");
 
         onUnauthorized();
 
@@ -79,7 +107,9 @@ function useTodos(
       const html =
         await response.text();
 
-      setCardsHtml(html);
+      setCardsHtml(
+        html
+      );
 
       return true;
 
@@ -102,7 +132,9 @@ function useTodos(
     setLoading(false);
   }
 
-  async function addTodo(todo) {
+  async function addTodo(
+    todo
+  ) {
     return requestHtml(
       `${API}/todos`,
       {
@@ -114,12 +146,16 @@ function useTodos(
         },
 
         body:
-          JSON.stringify(todo)
+          JSON.stringify(
+            todo
+          )
       }
     );
   }
 
-  async function deleteTodo(id) {
+  async function deleteTodo(
+    id
+  ) {
     return requestHtml(
       `${API}/todos/${id}`,
       {
@@ -143,7 +179,9 @@ function useTodos(
         },
 
         body:
-          JSON.stringify(todo)
+          JSON.stringify(
+            todo
+          )
       }
     );
   }
@@ -167,4 +205,3 @@ function useTodos(
 }
 
 export default useTodos;
-

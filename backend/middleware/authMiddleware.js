@@ -1,28 +1,54 @@
-const jwt = require("jsonwebtoken");
+const jwt =
+  require("jsonwebtoken");
 
-function authenticate(req, res) {
-  const authHeader =
-    req.headers.authorization;
+function getCookie(
+  req,
+  name
+) {
+  const cookieHeader =
+    req.headers.cookie;
 
-  if (!authHeader) {
-    res.writeHead(401, {
-      "Content-Type":
-        "application/json"
-    });
-
-    res.end(
-      JSON.stringify({
-        message: "No token provided"
-      })
-    );
-
-    return false;
+  if (!cookieHeader) {
+    return null;
   }
 
-  const token =
-    authHeader.split(" ")[1];
+  const cookies =
+    cookieHeader.split(";");
 
-  if (!token) {
+  for (
+    const cookie of cookies
+  ) {
+    const [
+      cookieName,
+      ...cookieValue
+    ] =
+      cookie
+        .trim()
+        .split("=");
+
+    if (
+      cookieName === name
+    ) {
+      return decodeURIComponent(
+        cookieValue.join("=")
+      );
+    }
+  }
+
+  return null;
+}
+
+function authenticate(
+  req,
+  res
+) {
+  const accessToken =
+    getCookie(
+      req,
+      "accessToken"
+    );
+
+  if (!accessToken) {
     res.writeHead(401, {
       "Content-Type":
         "application/json"
@@ -30,7 +56,8 @@ function authenticate(req, res) {
 
     res.end(
       JSON.stringify({
-        message: "Invalid token"
+        message:
+          "Authentication required"
       })
     );
 
@@ -40,11 +67,12 @@ function authenticate(req, res) {
   try {
     const decoded =
       jwt.verify(
-        token,
-        process.env.JWT_SECRET
+        accessToken,
+        process.env.ACCESS_TOKEN_SECRET
       );
 
-    req.user = decoded;
+    req.user =
+      decoded;
 
     return true;
 
@@ -57,7 +85,7 @@ function authenticate(req, res) {
     res.end(
       JSON.stringify({
         message:
-          "Invalid or expired token"
+          "Invalid or expired access token"
       })
     );
 
@@ -65,4 +93,5 @@ function authenticate(req, res) {
   }
 }
 
-module.exports = authenticate;
+module.exports =
+  authenticate;

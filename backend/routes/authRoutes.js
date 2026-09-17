@@ -1,13 +1,25 @@
 const authController =
-  require("../controllers/authController");
-
-async function authRoutes(req, res) {
-  const url = new URL(
-    req.url,
-    `http://${req.headers.host}`
+  require(
+    "../controllers/authController"
   );
 
-  const pathname = url.pathname;
+const authenticate =
+  require(
+    "../middleware/authMiddleware"
+  );
+
+async function authRoutes(
+  req,
+  res
+) {
+  const url =
+    new URL(
+      req.url,
+      `http://${req.headers.host}`
+    );
+
+  const pathname =
+    url.pathname;
 
   if (
     req.method === "POST" &&
@@ -33,7 +45,54 @@ async function authRoutes(req, res) {
     return true;
   }
 
+  if (
+    req.method === "POST" &&
+    pathname === "/refresh"
+  ) {
+    authController.refresh(
+      req,
+      res
+    );
+
+    return true;
+  }
+
+  if (
+    req.method === "POST" &&
+    pathname === "/logout"
+  ) {
+    authController.logout(
+      req,
+      res
+    );
+
+    return true;
+  }
+
+  if (
+    req.method === "GET" &&
+    pathname === "/session"
+  ) {
+    const authenticated =
+      authenticate(
+        req,
+        res
+      );
+
+    if (!authenticated) {
+      return true;
+    }
+
+    authController.session(
+      req,
+      res
+    );
+
+    return true;
+  }
+
   return false;
 }
 
-module.exports = authRoutes;
+module.exports =
+  authRoutes;
