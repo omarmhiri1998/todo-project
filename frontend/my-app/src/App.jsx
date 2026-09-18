@@ -15,6 +15,9 @@ import Login
 import Signup
   from "./components/Signup";
 
+import Admin
+  from "./components/Admin";
+
 import useTodos
   from "./hooks/useTodos";
 
@@ -36,6 +39,11 @@ function App() {
   ] = useState(false);
 
   const [
+    user,
+    setUser
+  ] = useState(null);
+
+  const [
     checkingSession,
     setCheckingSession
   ] = useState(true);
@@ -44,6 +52,13 @@ function App() {
     showMobileForm,
     setShowMobileForm
   ] = useState(false);
+
+  const [
+    currentPage,
+    setCurrentPage
+  ] = useState(
+    window.location.pathname
+  );
 
   const {
     cardsHtml,
@@ -57,84 +72,122 @@ function App() {
 
     () => {
       setIsLoggedIn(false);
+      setUser(null);
       setAuthPage("login");
+      setCurrentPage("/");
     }
   );
 
-  useEffect(() => {
+  async function refreshAccessToken() {
+    try {
+      const response =
+        await fetch(
+          `${API}/refresh`,
+          {
+            method: "POST",
 
-    localStorage.removeItem(
-      "token"
-    );
+            credentials:
+              "include"
+          }
+        );
 
-    async function refreshAccessToken() {
-      try {
-        const response =
-          await fetch(
-            `${API}/refresh`,
-            {
-              method: "POST",
+      return response.ok;
 
-              credentials:
-                "include"
-            }
-          );
+    } catch {
+      return false;
+    }
+  }
 
-        return response.ok;
+  async function checkSession() {
+    try {
+      let response =
+        await fetch(
+          `${API}/session`,
+          {
+            credentials:
+              "include"
+          }
+        );
 
-      } catch {
+      if (
+        response.status === 401
+      ) {
+        const refreshed =
+          await refreshAccessToken();
+
+        if (refreshed) {
+          response =
+            await fetch(
+              `${API}/session`,
+              {
+                credentials:
+                  "include"
+              }
+            );
+        }
+      }
+
+      if (!response.ok) {
+        setIsLoggedIn(false);
+        setUser(null);
+
         return false;
       }
+
+      const data =
+        await response.json();
+
+      setIsLoggedIn(true);
+
+      setUser(
+        data.user
+      );
+
+      return true;
+
+    } catch {
+      setIsLoggedIn(false);
+      setUser(null);
+
+      return false;
+    }
+  }
+
+  useEffect(() => {
+    async function start() {
+      await checkSession();
+
+      setCheckingSession(
+        false
+      );
     }
 
-    async function checkSession() {
-      try {
-        let response =
-          await fetch(
-            `${API}/session`,
-            {
-              credentials:
-                "include"
-            }
-          );
-
-        if (
-          response.status === 401
-        ) {
-          const refreshed =
-            await refreshAccessToken();
-
-          if (refreshed) {
-            response =
-              await fetch(
-                `${API}/session`,
-                {
-                  credentials:
-                    "include"
-                }
-              );
-          }
-        }
-
-        setIsLoggedIn(
-          response.ok
-        );
-
-      } catch {
-        setIsLoggedIn(
-          false
-        );
-
-      } finally {
-        setCheckingSession(
-          false
-        );
-      }
-    }
-
-    checkSession();
-
+    start();
   }, []);
+
+  useEffect(() => {
+    function handlePopState() {
+      setCurrentPage(
+        window.location.pathname
+      );
+    }
+
+    window.addEventListener(
+      "popstate",
+      handlePopState
+    );
+
+    return () => {
+      window.removeEventListener(
+        "popstate",
+        handlePopState
+      );
+    };
+  }, []);
+
+  async function handleLogin() {
+    await checkSession();
+  }
 
   async function handleAddTodo(
     todo
@@ -169,6 +222,7 @@ function App() {
       }
 
       setIsLoggedIn(false);
+      setUser(null);
 
       setAuthPage(
         "login"
@@ -178,12 +232,46 @@ function App() {
         false
       );
 
+      window.history.pushState(
+        {},
+        "",
+        "/"
+      );
+
+      setCurrentPage(
+        "/"
+      );
+
     } catch (error) {
       console.error(
         "Logout failed:",
         error
       );
     }
+  }
+
+  function openAdmin() {
+    window.history.pushState(
+      {},
+      "",
+      "/admin"
+    );
+
+    setCurrentPage(
+      "/admin"
+    );
+  }
+
+  function closeAdmin() {
+    window.history.pushState(
+      {},
+      "",
+      "/"
+    );
+
+    setCurrentPage(
+      "/"
+    );
   }
 
   if (checkingSession) {
@@ -217,10 +305,21 @@ function App() {
           )
         }
 
-        onLogin={() =>
-          setIsLoggedIn(
-            true
-          )
+        onLogin={
+          handleLogin
+        }
+      />
+    );
+  }
+
+  if (
+    currentPage === "/admin" &&
+    user?.role === "admin"
+  ) {
+    return (
+      <Admin
+        onBack={
+          closeAdmin
         }
       />
     );
@@ -236,6 +335,19 @@ function App() {
     >
 
       <div className="todo-top-bar">
+
+        {user?.role === "admin" && (
+          <button
+            type="button"
+            className="admin-button"
+            onClick={
+              openAdmin
+            }
+          >
+            Admin
+          </button>
+        )}
+
         <button
           type="button"
           className="logout-button"
@@ -245,6 +357,7 @@ function App() {
         >
           Logout
         </button>
+
       </div>
 
       <div className="logo">

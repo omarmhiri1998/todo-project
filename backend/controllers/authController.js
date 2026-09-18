@@ -120,7 +120,8 @@ async function register(
     const newUser =
       await userModel.createUser({
         email: data.email,
-        password: hashedPassword
+        password: hashedPassword,
+        role: "user"
       });
 
     res.writeHead(201, {
@@ -211,7 +212,10 @@ async function login(
             user._id.toString(),
 
           email:
-            user.email
+            user.email,
+
+          role:
+            user.role || "user"
         },
         process.env
           .ACCESS_TOKEN_SECRET,
@@ -224,10 +228,7 @@ async function login(
       jwt.sign(
         {
           userId:
-            user._id.toString(),
-
-          email:
-            user.email
+            user._id.toString()
         },
         process.env
           .REFRESH_TOKEN_SECRET,
@@ -274,7 +275,7 @@ async function login(
   }
 }
 
-function refresh(
+async function refresh(
   req,
   res
 ) {
@@ -308,14 +309,38 @@ function refresh(
           .REFRESH_TOKEN_SECRET
       );
 
+    const user =
+      await userModel.findUserById(
+        decoded.userId
+      );
+
+    if (!user) {
+      res.writeHead(401, {
+        "Content-Type":
+          "application/json"
+      });
+
+      res.end(
+        JSON.stringify({
+          message:
+            "User not found"
+        })
+      );
+
+      return;
+    }
+
     const newAccessToken =
       jwt.sign(
         {
           userId:
-            decoded.userId,
+            user._id.toString(),
 
           email:
-            decoded.email
+            user.email,
+
+          role:
+            user.role || "user"
         },
         process.env
           .ACCESS_TOKEN_SECRET,
@@ -409,7 +434,10 @@ function session(
           req.user.userId,
 
         email:
-          req.user.email
+          req.user.email,
+
+        role:
+          req.user.role
       }
     })
   );
