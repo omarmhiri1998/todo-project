@@ -11,6 +11,11 @@ const authRoutes =
     "./routes/authRoutes"
   );
 
+const adminRoutes =
+  require(
+    "./routes/adminRoutes"
+  );
+
 const authenticate =
   require(
     "./middleware/authMiddleware"
@@ -91,6 +96,16 @@ const server =
         );
 
       if (authHandled) {
+        return;
+      }
+
+      const adminHandled =
+        await adminRoutes(
+          req,
+          res
+        );
+
+      if (adminHandled) {
         return;
       }
 
