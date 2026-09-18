@@ -99,14 +99,20 @@ const server =
         return;
       }
 
-      const adminHandled =
-        await adminRoutes(
-          req,
-          res
-        );
+      if (
+        req.url.startsWith(
+          "/admin"
+        )
+      ) {
+        const adminHandled =
+          await adminRoutes(
+            req,
+            res
+          );
 
-      if (adminHandled) {
-        return;
+        if (adminHandled) {
+          return;
+        }
       }
 
       if (
